@@ -9,6 +9,8 @@ import { formatTime } from "@/lib/time";
 import type { Language } from "@/lib/validation";
 import type { DoseSlotView } from "./DoseList";
 
+const NO_VOICE = "Voice needs Chrome or Edge on this device — you can still tap the big button.";
+
 const ICON = { taken: "✅", skipped: "⏭️", missed: "⚠️", due: "⏰", upcoming: "🕒" } as const;
 
 export function ElderMode({
@@ -36,7 +38,7 @@ export function ElderMode({
 
   // The dose to act on: anything due or missed first, otherwise the next upcoming one.
   const current = slots.find((s) => s.status === "due" || s.status === "missed") ?? slots.find((s) => s.status === "upcoming");
-  const actionable = current && (current.status === "due" || current.status === "missed");
+  const actionable = Boolean(current);
 
   const markTaken = () => {
     if (!current) return;
@@ -114,10 +116,10 @@ export function ElderMode({
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <button className="btn-ghost min-h-[72px] text-xl" onClick={readAll} disabled={!voiceSupported.speak}>
+        <button className="btn-ghost min-h-[72px] text-xl" onClick={voiceSupported.speak ? readAll : () => setMessage(NO_VOICE)}>
           🔊 {t.readAloud}
         </button>
-        <button className="btn-ghost min-h-[72px] text-xl" onClick={listen} disabled={!voiceSupported.listen || listening || !actionable}>
+        <button className="btn-ghost min-h-[72px] text-xl" onClick={voiceSupported.listen ? listen : () => setMessage(NO_VOICE)} disabled={listening || !actionable}>
           🎤 {listening ? t.listening : t.sayIt}
         </button>
       </div>

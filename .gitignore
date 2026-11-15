@@ -46,3 +46,6 @@ next-env.d.ts
 .pglite-test/
 
 .claude/
+
+# personal submission notes
+SUBMISSION.md
