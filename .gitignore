@@ -38,3 +38,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+
+# local embedded database
+.pglite/
+.pglite-test/
+
+.claude/

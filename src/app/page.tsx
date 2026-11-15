@@ -1,101 +1,89 @@
-import Image from "next/image";
+import { redirect } from "next/navigation";
+import { OnboardingForms } from "@/components/OnboardingForms";
+import { SiteFooter } from "@/components/SiteFooter";
+import { getViewer } from "@/lib/session";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+const FEATURES = [
+  {
+    icon: "📷",
+    title: "Snap a prescription",
+    body: "Google Gemini reads the doctor's handwriting — even 1-0-1 shorthand — and builds the medicine schedule for you.",
+  },
+  {
+    icon: "🗣️",
+    title: "Voice-first Elder Mode",
+    body: "Huge buttons, the day's medicines read aloud in their language, and “I took it” by voice. Dignity, not dashboards.",
+  },
+  {
+    icon: "👨‍👩‍👧",
+    title: "One circle, many hands",
+    body: "Elder, caretaker and family share one passcode-protected profile. Everyone sees who gave what, and when.",
+  },
+  {
+    icon: "📧",
+    title: "Reminders that escalate",
+    body: "Email nudges before each dose; if a dose is missed, the family is told — not just the phone that was ignored.",
+  },
+  {
+    icon: "📈",
+    title: "Adherence you can see",
+    body: "A 7-day adherence ring, per-medicine trends, refill alerts and an AI weekly care digest for busy families.",
+  },
+  {
+    icon: "🆘",
+    title: "Emergency QR card",
+    body: "A printable card with medicines, allergies and contacts for paramedics — one scan, no login needed.",
+  },
+];
+
+export default async function Home() {
+  if (await getViewer()) redirect("/circle");
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <>
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
+        <span className="flex items-center gap-2 text-xl font-extrabold text-[var(--brand)]">
+          <span aria-hidden className="grid h-9 w-9 place-items-center rounded-full bg-[var(--brand)] text-white">
+            ◎
+          </span>
+          CareCircle
+        </span>
+        <span className="chip bg-[var(--brand-soft)] text-[var(--brand)]">Powered by Google Gemini</span>
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+      <main id="main" className="mx-auto grid max-w-6xl gap-10 px-4 pb-8 pt-4 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+        <section aria-labelledby="hero-title" className="flex flex-col gap-6 lg:pt-6">
+          <h1 id="hero-title" className="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+            Caring together for the ones who <span className="text-[var(--brand)]">cared for us.</span>
+          </h1>
+          <p className="max-w-xl text-lg text-[var(--muted)]">
+            CareCircle keeps an elderly parent&apos;s medicines, doctor visits and reminders in one shared, secure place — so the
+            elder stays in charge of their own health, and the whole family can help.
+          </p>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {FEATURES.map((f) => (
+              <li key={f.title} className="card flex gap-3 p-4">
+                <span aria-hidden className="text-2xl">
+                  {f.icon}
+                </span>
+                <span>
+                  <strong className="block">{f.title}</strong>
+                  <span className="text-sm text-[var(--muted)]">{f.body}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-label="Create or join a care circle" className="lg:sticky lg:top-6">
+          <OnboardingForms />
+          <p className="mt-3 text-center text-sm text-[var(--muted)]">
+            No app install, no accounts to remember — just a circle code and a passcode.
+          </p>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      <SiteFooter />
+    </>
   );
 }
