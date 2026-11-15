@@ -35,9 +35,9 @@ const NAV = [
 
 const KIND_ICON = { upcoming_dose: "💊", missed_dose: "⚠️", appointment: "🩺", refill: "📦" } as const;
 
-export default async function CirclePage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
+export default async function CirclePage({ searchParams }: { searchParams: Promise<{ welcome?: string; demo?: string }> }) {
   const { member, circle } = await requireViewer();
-  const { welcome } = await searchParams;
+  const { welcome, demo } = await searchParams;
   const now = new Date();
   const data = await loadDashboard(circle.id, circle.timezone, now);
   const aiEnabled = geminiEnabled();
@@ -92,6 +92,15 @@ export default async function CirclePage({ searchParams }: { searchParams: Promi
       </header>
 
       <main id="main" className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-6">
+        {demo && (
+          <div role="status" className="card border-[var(--brand)] bg-[var(--brand-soft)]">
+            <p className="font-semibold">👋 Welcome to the demo — this is Lakshmi Amma&apos;s circle, just for you.</p>
+            <p className="text-sm">
+              Try: mark a dose as taken · open <strong>🗣️ Elder Mode</strong> and press &ldquo;Read my medicines&rdquo; · ✨ generate the weekly
+              digest · open the 🆘 emergency card · add an appointment to Google Calendar.
+            </p>
+          </div>
+        )}
         {welcome && (
           <div role="status" className="card border-[var(--brand)] bg-[var(--brand-soft)]">
             <p className="font-semibold">Your care circle is ready 🎉</p>

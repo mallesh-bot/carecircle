@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { hashPasscode, normalizeCircleCode, verifyPasscode } from "@/lib/crypto";
 import { getDb } from "@/lib/db";
 import { careDigest, explainMedicine, extractPrescription, GeminiError, type CareDigest, type ExtractedMedication, type MedicineExplanation } from "@/lib/gemini";
+import { seedDemoCircle } from "@/lib/demo";
 import { runRemindersForCircle } from "@/lib/reminder-runner";
 import * as repo from "@/lib/repo";
 import { computeAdherence, needsRefill } from "@/lib/schedule";
@@ -86,6 +87,13 @@ export async function joinCircleAction(_: ActionState, fd: FormData): Promise<Ac
   await repo.addActivity(db, circle.id, input.name, `joined the circle as ${input.role}`);
   await signIn(member.id);
   redirect("/circle");
+}
+
+/** One-click demo: a private, pre-filled circle so visitors can try every feature. */
+export async function startDemoAction(): Promise<void> {
+  const { visitor } = await seedDemoCircle(await getDb(), "You (demo)");
+  await signIn(visitor.id);
+  redirect("/circle?demo=1");
 }
 
 export async function signOutAction(): Promise<void> {

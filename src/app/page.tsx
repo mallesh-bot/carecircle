@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { startDemoAction } from "@/app/actions";
 import { OnboardingForms } from "@/components/OnboardingForms";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getViewer } from "@/lib/session";
@@ -61,6 +62,10 @@ export default async function Home() {
             CareCircle keeps an elderly parent&apos;s medicines, doctor visits and reminders in one shared, secure place — so the
             elder stays in charge of their own health, and the whole family can help.
           </p>
+          <form action={startDemoAction} className="flex flex-wrap items-center gap-3">
+            <button className="btn-primary px-6 text-lg">▶ Try the live demo</button>
+            <span className="text-sm text-[var(--muted)]">One click · a private sample circle with a week of real-looking data</span>
+          </form>
           <ul className="grid gap-3 sm:grid-cols-2">
             {FEATURES.map((f) => (
               <li key={f.title} className="card flex gap-3 p-4">
