@@ -71,6 +71,16 @@ function AppointmentRow({ appt, timezone, elderName }: { appt: AppointmentView; 
         >
           📅 Google Calendar
         </a>
+        {appt.location && (
+          <a
+            className="btn-ghost text-sm"
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appt.location)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            🗺️ Directions
+          </a>
+        )}
         <button className="btn-ghost text-sm" onClick={() => setEditing(true)}>
           Edit
         </button>
