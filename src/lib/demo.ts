@@ -67,23 +67,31 @@ export async function seedDemoCircle(db: Db, visitorName: string, now = new Date
   }
   await db.query(`UPDATE medications SET created_at = $2 WHERE circle_id = $1`, [circle.id, zonedTimeToUtc(startDate, "00:00", TZ)]);
 
-  // Seven days of history, plus today's doses that are already well past.
+  // Seven days of history, plus today's doses that are already well past — inserted in one statement.
   const loggers = ["Meena (caretaker)", "Lakshmi Amma", "Ravi (son, Bengaluru)"];
+  const history = { medIds: [] as string[], times: [] as Date[], statuses: [] as string[], by: [] as string[], at: [] as Date[] };
   for (let offset = -7; offset <= 0; offset++) {
     const date = addDays(today, offset);
-    for (const [i, med] of meds.entries()) {
-      for (const at of slotsForDate({ ...med, createdAt: new Date(0) }, date, TZ)) {
+    meds.forEach((med, i) => {
+      for (const time of med.times) {
+        if (!slotsForDate({ ...med, createdAt: new Date(0) }, date, TZ).length) continue;
+        const at = zonedTimeToUtc(date, time, TZ);
         if (at.getTime() > now.getTime() - 90 * TIME.MINUTE) continue; // leave recent/upcoming doses for the visitor
-        const time = med.times.find((t) => zonedTimeToUtc(date, t, TZ).getTime() === at.getTime()) ?? "";
         const outcome = demoOutcome(offset, i, time);
         if (!outcome) continue;
-        await db.query(
-          `INSERT INTO dose_logs (medication_id, scheduled_at, status, logged_by, logged_at) VALUES ($1, $2, $3, $4, $5)`,
-          [med.id, at, outcome, loggers[(offset + i + 7) % loggers.length], new Date(at.getTime() + 12 * TIME.MINUTE)],
-        );
+        history.medIds.push(med.id);
+        history.times.push(at);
+        history.statuses.push(outcome);
+        history.by.push(loggers[(offset + i + 7) % loggers.length]);
+        history.at.push(new Date(at.getTime() + 12 * TIME.MINUTE));
       }
-    }
+    });
   }
+  await db.query(
+    `INSERT INTO dose_logs (medication_id, scheduled_at, status, logged_by, logged_at)
+     SELECT * FROM unnest($1::uuid[], $2::timestamptz[], $3::text[], $4::text[], $5::timestamptz[])`,
+    [history.medIds, history.times, history.statuses, history.by, history.at],
+  );
 
   const tomorrow = addDays(today, 1);
   await repo.createAppointment(
@@ -99,15 +107,20 @@ export async function seedDemoCircle(db: Db, visitorName: string, now = new Date
     zonedTimeToUtc(addDays(today, 6), "16:00", TZ),
   );
 
-  for (const [actor, message] of [
+  const feed = [
     ["Ravi (son, Bengaluru)", "created Lakshmi Amma's Care Circle"],
     ["Ravi (son, Bengaluru)", "added 4 medicine(s) from a scanned prescription"],
     ["Meena (caretaker)", "joined the circle as caretaker"],
     ["Meena (caretaker)", "updated the health profile"],
     [visitorName, "joined the circle as family"],
-  ] as const) {
-    await repo.addActivity(db, circle.id, actor, message);
-  }
+  ];
+  // Spread over the past week so the feed reads like a real history.
+  await db.query(
+    `INSERT INTO activity (circle_id, actor, message, created_at)
+     SELECT $1, actor, message, now() - make_interval(hours => ($4::int - ord::int) * 30)
+     FROM unnest($2::text[], $3::text[]) WITH ORDINALITY AS f(actor, message, ord)`,
+    [circle.id, feed.map((f) => f[0]), feed.map((f) => f[1]), feed.length],
+  );
 
   return { circle, visitor };
 }

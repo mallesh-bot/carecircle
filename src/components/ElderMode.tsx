@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
-import { logDoseAction } from "@/app/actions";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { logDoseAction } from "@/app/actions/doses";
 import { partOfDay, phraseLanguage, phrasesFor } from "@/lib/elder-phrases";
 import { canSpeak, getRecognition, meansTaken, speak, SPEECH_LANG } from "@/lib/speech";
 import { formatTime } from "@/lib/time";
@@ -10,6 +10,12 @@ import type { Language } from "@/lib/validation";
 import type { DoseSlotView } from "./DoseList";
 
 const NO_VOICE = "Voice needs Chrome or Edge on this device — you can still tap the big button.";
+
+const subscribeNoop = () => () => {};
+const NO_SUPPORT = { speak: false, listen: false };
+let cachedSupport: typeof NO_SUPPORT | null = null;
+/** Browser voice capabilities (stable snapshot for useSyncExternalStore). */
+const voiceSupport = () => (cachedSupport ??= { speak: canSpeak(), listen: Boolean(getRecognition()) });
 
 const ICON = { taken: "✅", skipped: "⏭️", missed: "⚠️", due: "⏰", upcoming: "🕒" } as const;
 
@@ -31,10 +37,8 @@ export function ElderMode({
   const [pending, start] = useTransition();
   const [listening, setListening] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [voiceSupported, setVoiceSupported] = useState({ speak: false, listen: false });
+  const voiceSupported = useSyncExternalStore(subscribeNoop, voiceSupport, () => NO_SUPPORT);
   const recognitionRef = useRef<{ stop(): void } | null>(null);
-
-  useEffect(() => setVoiceSupported({ speak: canSpeak(), listen: Boolean(getRecognition()) }), []);
 
   // The dose to act on: anything due or missed first, otherwise the next upcoming one.
   const current = slots.find((s) => s.status === "due" || s.status === "missed") ?? slots.find((s) => s.status === "upcoming");

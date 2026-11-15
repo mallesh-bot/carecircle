@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { removeMemberAction, sendRemindersNowAction, updateMyNotificationsAction, type ActionState } from "@/app/actions";
+import { removeMemberAction, sendRemindersNowAction, updateMyNotificationsAction } from "@/app/actions/circle";
+import type { ActionState } from "@/lib/action-utils";
+import { canRemove } from "@/lib/permissions";
 import type { Role } from "@/lib/types";
 import { FormStatus } from "./FormStatus";
 
@@ -15,9 +17,12 @@ export interface MemberView {
 
 const ROLE_LABEL: Record<Role, string> = { elder: "Elder", caretaker: "Caretaker", family: "Family" };
 
-export function MemberList({ members, meId, canRemove }: { members: MemberView[]; meId: string; canRemove: boolean }) {
+export function MemberList({ members, meId, viewerRole }: { members: MemberView[]; meId: string; viewerRole: Role }) {
   const [pending, start] = useTransition();
+  const [status, setStatus] = useState<ActionState>(null);
   return (
+    <>
+    <FormStatus state={status} />
     <ul className="flex flex-col gap-2">
       {members.map((m) => (
         <li key={m.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-4 py-3">
@@ -34,14 +39,21 @@ export function MemberList({ members, meId, canRemove }: { members: MemberView[]
               </span>
             </span>
           </span>
-          {canRemove && m.id !== meId && (
-            <button className="btn-ghost text-sm" disabled={pending} onClick={() => start(async () => void (await removeMemberAction(m.id)))} aria-label={`Remove ${m.name}`}>
+          {canRemove(viewerRole, m.role, m.id === meId) && (
+            <button
+              type="button"
+              className="btn-ghost text-sm"
+              disabled={pending}
+              onClick={() => start(async () => setStatus(await removeMemberAction(m.id)))}
+              aria-label={`Remove ${m.name}`}
+            >
               Remove
             </button>
           )}
         </li>
       ))}
     </ul>
+    </>
   );
 }
 

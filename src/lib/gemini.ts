@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { env } from "./env";
 import { LANGUAGES, type Language } from "./validation";
 
 /**
@@ -10,28 +11,41 @@ import { LANGUAGES, type Language } from "./validation";
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export function geminiEnabled(): boolean {
-  return Boolean(process.env.GEMINI_API_KEY);
+  return Boolean(env().GEMINI_API_KEY);
 }
 
 export class GeminiError extends Error {}
 
 type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
 
-async function generateJson<S extends z.ZodTypeAny>(parts: Part[], responseSchema: object, validator: S): Promise<z.output<S>> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new GeminiError("Gemini is not configured. Add GEMINI_API_KEY to enable AI features.");
-  const model = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
+const SYSTEM_INSTRUCTION =
+  "You support family caregivers of elderly people. You never diagnose, never recommend or change doses, " +
+  "and always defer to the prescribing doctor. Answer only with JSON matching the schema.";
 
-  const res = await fetch(`${ENDPOINT}/${encodeURIComponent(model)}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts }],
-      generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema },
-    }),
-    signal: AbortSignal.timeout(25_000),
-    cache: "no-store",
-  });
+const TIMEOUT_MS = 25_000;
+
+async function generateJson<S extends z.ZodType>(parts: Part[], responseSchema: object, validator: S): Promise<z.output<S>> {
+  const { GEMINI_API_KEY: key, GEMINI_MODEL } = env();
+  if (!key) throw new GeminiError("Gemini is not configured. Add GEMINI_API_KEY to enable AI features.");
+  const model = GEMINI_MODEL ?? "gemini-flash-latest";
+
+  let res: Response;
+  try {
+    res = await fetch(`${ENDPOINT}/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      // The key travels in a header, never in the URL (URLs end up in logs).
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+        contents: [{ role: "user", parts }],
+        generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema },
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cache: "no-store",
+    });
+  } catch {
+    throw new GeminiError("Couldn't reach Gemini. Please check the connection and try again.");
+  }
   if (!res.ok) {
     throw new GeminiError(res.status === 429 ? "Gemini is busy right now. Please try again in a minute." : `Gemini request failed (${res.status}).`);
   }

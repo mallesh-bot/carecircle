@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { after } from "next/server";
 import QRCode from "qrcode";
-import { signOutAction } from "@/app/actions";
+import { signOutAction } from "@/app/actions/onboarding";
 import { AdherenceCard } from "@/components/AdherenceCard";
 import { Appointments } from "@/components/Appointments";
 import { CareDigest } from "@/components/CareDigest";
@@ -42,7 +42,7 @@ export default async function CirclePage({ searchParams }: { searchParams: Promi
   const data = await loadDashboard(circle.id, circle.timezone, now);
   const aiEnabled = geminiEnabled();
   const cardUrl = `${appUrl()}/card/${circle.cardToken}`;
-  const qrSvg = await QRCode.toString(cardUrl, { type: "svg", margin: 1, width: 160, errorCorrectionLevel: "M" });
+  const qrDataUrl = await QRCode.toDataURL(cardUrl, { margin: 1, width: 320, errorCorrectionLevel: "M" });
 
   // Opportunistic reminder run after the response is sent — a safety net on top of cron.
   after(async () => {
@@ -169,7 +169,14 @@ export default async function CirclePage({ searchParams }: { searchParams: Promi
             Doctor appointments
           </h2>
           <Appointments
-            items={data.appointments.map((a) => ({ ...a, startsAt: a.startsAt.toISOString(), createdAt: undefined }))}
+            items={data.appointments.map((a) => ({
+              id: a.id,
+              title: a.title,
+              doctor: a.doctor,
+              location: a.location,
+              notes: a.notes,
+              startsAt: a.startsAt.toISOString(),
+            }))}
             timezone={circle.timezone}
             elderName={circle.elderName}
           />
@@ -183,7 +190,7 @@ export default async function CirclePage({ searchParams }: { searchParams: Promi
             <MemberList
               members={data.members.map((m) => ({ id: m.id, name: m.name, role: m.role, hasEmail: Boolean(m.email), notify: m.notify }))}
               meId={member.id}
-              canRemove={member.role !== "family"}
+              viewerRole={member.role}
             />
             <div className="mt-6 border-t border-[var(--line)] pt-4">
               <h3 className="mb-2 font-semibold">My reminders</h3>
@@ -250,7 +257,8 @@ export default async function CirclePage({ searchParams }: { searchParams: Promi
               Print this and keep it in a wallet or on the fridge. Paramedics can scan it to see current medicines, allergies and contacts —
               read-only, no login needed.
             </p>
-            <div className="rounded-xl border border-[var(--line)] bg-white p-2" role="img" aria-label="QR code for the emergency card" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+            {/* eslint-disable-next-line @next/next/no-img-element -- generated data URL, nothing to optimise */}
+            <img src={qrDataUrl} width={160} height={160} alt={`QR code linking to ${circle.elderName}'s emergency card`} className="rounded-xl border border-[var(--line)] bg-white p-2" />
             <Link href={`/card/${circle.cardToken}`} className="btn-ghost" target="_blank">
               Open printable card
             </Link>

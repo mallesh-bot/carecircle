@@ -1,4 +1,6 @@
 import "server-only";
+import type { Transporter } from "nodemailer";
+import { env } from "./env";
 
 export interface EmailMessage {
   to: string[];
@@ -7,8 +9,23 @@ export interface EmailMessage {
 }
 
 export function emailEnabled(): boolean {
-  return Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+  const e = env();
+  return Boolean(e.GMAIL_USER && e.GMAIL_APP_PASSWORD);
 }
+
+let transport: Promise<Transporter> | undefined;
+
+/** One pooled SMTP connection per server instance instead of one per email. */
+function getTransport(): Promise<Transporter> {
+  transport ??= import("nodemailer").then((nodemailer) => {
+    const e = env();
+    return nodemailer.createTransport({ service: "gmail", pool: true, auth: { user: e.GMAIL_USER, pass: e.GMAIL_APP_PASSWORD } });
+  });
+  return transport;
+}
+
+/** Strips CR/LF so user-provided text (e.g. a medicine name) can't inject email headers. */
+const headerSafe = (value: string) => value.replace(/[\r\n]+/g, " ").slice(0, 200);
 
 /**
  * Sends an email through Gmail SMTP when configured. Returns false (and the
@@ -16,15 +33,10 @@ export function emailEnabled(): boolean {
  */
 export async function sendEmail(msg: EmailMessage): Promise<boolean> {
   if (!emailEnabled() || msg.to.length === 0) return false;
-  const nodemailer = await import("nodemailer");
-  const transport = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-  });
-  await transport.sendMail({
-    from: `CareCircle <${process.env.GMAIL_USER}>`,
+  await (await getTransport()).sendMail({
+    from: `CareCircle <${env().GMAIL_USER}>`,
     bcc: msg.to, // members don't see each other's addresses
-    subject: msg.subject,
+    subject: headerSafe(msg.subject),
     text: `${msg.text}\n\n— CareCircle · caring together`,
   });
   return true;

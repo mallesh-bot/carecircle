@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { startDemoAction } from "@/app/actions";
+import { startDemoAction } from "@/app/actions/onboarding";
 import { OnboardingForms } from "@/components/OnboardingForms";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getViewer } from "@/lib/session";
@@ -39,8 +39,9 @@ const FEATURES = [
   },
 ];
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ signin?: string; limited?: string }> }) {
   if (await getViewer()) redirect("/circle");
+  const { signin, limited } = await searchParams;
   return (
     <>
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
@@ -62,6 +63,11 @@ export default async function Home() {
             CareCircle keeps an elderly parent&apos;s medicines, doctor visits and reminders in one shared, secure place — so the
             elder stays in charge of their own health, and the whole family can help.
           </p>
+          {(signin || limited) && (
+            <p role="status" className="rounded-xl bg-[var(--warn-soft)] p-3 text-sm font-medium text-[var(--warn)]">
+              {limited ? "Lots of demos were started from your network recently — please try again in a little while." : "Please join your circle again to continue."}
+            </p>
+          )}
           <form action={startDemoAction} className="flex flex-wrap items-center gap-3">
             <button className="btn-primary px-6 text-lg">▶ Try the live demo</button>
             <span className="text-sm text-[var(--muted)]">One click · a private sample circle with a week of real-looking data</span>

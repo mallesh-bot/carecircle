@@ -39,10 +39,13 @@ describe("repository (embedded Postgres)", () => {
   it("issues sessions that resolve to the member and can be revoked", async () => {
     const m = await repo.addMember(db, circleId, { name: "Priya", email: "p@example.com", role: "family" });
     const token = await repo.createSession(db, m.id);
-    expect((await repo.getSessionMember(db, token))?.name).toBe("Priya");
-    expect(await repo.getSessionMember(db, "forged-token")).toBeNull();
+    const session = await repo.getSession(db, token);
+    expect(session?.member.name).toBe("Priya");
+    expect(session?.circle.id).toBe(circleId);
+    expect(session?.circle.createdAt).toBeInstanceOf(Date);
+    expect(await repo.getSession(db, "forged-token")).toBeNull();
     await repo.deleteSession(db, token);
-    expect(await repo.getSessionMember(db, token)).toBeNull();
+    expect(await repo.getSession(db, token)).toBeNull();
   });
 
   it("isolates circles from each other", async () => {

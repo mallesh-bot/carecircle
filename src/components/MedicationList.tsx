@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
-import { deleteMedicationAction, explainMedicineAction, setMedicationActiveAction, type ExplainState } from "@/app/actions";
+import { explainMedicineAction, type ExplainState } from "@/app/actions/ai";
+import { deleteMedicationAction, setMedicationActiveAction } from "@/app/actions/medications";
 import { speak, stopSpeaking } from "@/lib/speech";
 import type { Medication } from "@/lib/types";
 import type { Language } from "@/lib/validation";
+import type { ActionState } from "@/lib/action-utils";
+import { FormStatus } from "./FormStatus";
 import { MedicationForm } from "./MedicationForm";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -41,6 +44,7 @@ function MedicationRow({ med, today, language, aiEnabled }: { med: Medication; t
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [explain, setExplain] = useState<ExplainState>(null);
+  const [status, setStatus] = useState<ActionState>(null);
   const [pending, startTransition] = useTransition();
   const closeEdit = useCallback(() => setEditing(false), []);
   const lowStock = med.stock !== null && med.stock <= med.refillThreshold;
@@ -96,11 +100,11 @@ function MedicationRow({ med, today, language, aiEnabled }: { med: Medication; t
           <button className="btn-ghost text-sm" onClick={() => setEditing(true)}>
             Edit
           </button>
-          <button className="btn-ghost text-sm" disabled={pending} onClick={() => startTransition(async () => void (await setMedicationActiveAction(med.id, !med.active)))}>
+          <button className="btn-ghost text-sm" disabled={pending} onClick={() => startTransition(async () => setStatus(await setMedicationActiveAction(med.id, !med.active)))}>
             {med.active ? "Pause" : "Resume"}
           </button>
           {confirmDelete ? (
-            <button className="btn-danger text-sm" disabled={pending} onClick={() => startTransition(async () => void (await deleteMedicationAction(med.id)))}>
+            <button className="btn-danger text-sm" disabled={pending} onClick={() => startTransition(async () => setStatus(await deleteMedicationAction(med.id)))}>
               Confirm delete
             </button>
           ) : (
@@ -110,6 +114,7 @@ function MedicationRow({ med, today, language, aiEnabled }: { med: Medication; t
           )}
         </div>
       </div>
+      {status?.error && <FormStatus state={status} />}
       <div aria-live="polite">
         {pending && !ex && <p className="mt-3 text-sm text-[var(--muted)]">Asking Gemini…</p>}
         {explain?.error && <p className="mt-3 text-sm font-medium text-[var(--danger)]">{explain.error}</p>}

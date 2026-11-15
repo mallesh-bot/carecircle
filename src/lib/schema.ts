@@ -102,4 +102,18 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS notifications_circle_idx ON notifications(circle_id, created_at DESC);
+
+-- Fixed-window rate limiting for abuse-prone actions (demo creation, AI calls, ...).
+CREATE TABLE IF NOT EXISTS rate_limits (
+  bucket       text NOT NULL,
+  window_start timestamptz NOT NULL,
+  hits         integer NOT NULL DEFAULT 1,
+  PRIMARY KEY (bucket, window_start)
+);
+
+-- Migrations for databases created by earlier versions.
+ALTER TABLE circles ADD COLUMN IF NOT EXISTS reminders_checked_at timestamptz;
+CREATE INDEX IF NOT EXISTS sessions_member_idx ON sessions(member_id);
+CREATE INDEX IF NOT EXISTS sessions_expiry_idx ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS dose_logs_scheduled_idx ON dose_logs(scheduled_at);
 `;

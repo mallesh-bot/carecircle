@@ -6,7 +6,7 @@ CareCircle is a shared, secure care space where an elderly person, their caretak
 
 > Built for **PromptWars × Catalyst** (MnM · Hack2skill · Google for Developers) for the challenge *Elderly Care & Medication Management Platform*.
 
-**Live demo:** https://carecircle-brown-seven.vercel.app (click **▶ Try the live demo**, no sign-up needed) · **Stack:** Next.js 15 · React 19 · TypeScript · PostgreSQL (Neon) · Google Gemini · Vercel
+**Live demo:** https://carecircle-brown-seven.vercel.app (click **▶ Try the live demo**, no sign-up needed) · **Stack:** Next.js 16 · React 19 · TypeScript · PostgreSQL (Neon) · Google Gemini · Vercel
 
 ---
 
@@ -80,7 +80,8 @@ tests/                    Vitest unit + integration tests (embedded Postgres)
 ```bash
 npm install
 npm run dev          # http://localhost:3000, uses an embedded database automatically
-npm test             # 50 unit and integration tests (embedded Postgres, mocked Gemini)
+npm test             # 96 unit, integration, component and accessibility (axe) tests
+npm run test:coverage  # with coverage thresholds (≈90% of lines)
 ```
 
 > Node 20–24. On Node 25, run dev with `NODE_OPTIONS=--no-experimental-webstorage`.

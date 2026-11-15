@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { saveMedicationAction } from "@/app/actions";
+import { useActionState, useEffect, useId, useState } from "react";
+import { saveMedicationAction } from "@/app/actions/medications";
 import type { Medication } from "@/lib/types";
-import { FormStatus } from "./FormStatus";
+import { fieldA11y, FormStatus } from "./FormStatus";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function MedicationForm({ med, today, onDone }: { med?: Medication; today: string; onDone?: () => void }) {
   const [state, action, pending] = useActionState(saveMedicationAction, null);
+  const statusId = useId();
   const [times, setTimes] = useState<string[]>(med?.times.length ? med.times : ["08:00"]);
 
   useEffect(() => {
@@ -22,7 +23,7 @@ export function MedicationForm({ med, today, onDone }: { med?: Medication; today
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="field">
           Medicine name
-          <input className="input" name="name" required maxLength={80} defaultValue={med?.name} placeholder="e.g. Metformin 500mg" />
+          <input className="input" name="name" {...fieldA11y(state, "name", statusId)} required maxLength={80} defaultValue={med?.name} placeholder="e.g. Metformin 500mg" />
         </label>
         <label className="field">
           Dose
@@ -43,6 +44,7 @@ export function MedicationForm({ med, today, onDone }: { med?: Medication; today
                 className="input w-32"
                 type="time"
                 name="times"
+                {...fieldA11y(state, "times", statusId)}
                 required
                 value={t}
                 aria-label={`Dose time ${i + 1}`}
@@ -80,23 +82,23 @@ export function MedicationForm({ med, today, onDone }: { med?: Medication; today
       <div className="grid gap-4 sm:grid-cols-4">
         <label className="field">
           Start date
-          <input className="input" type="date" name="startDate" required defaultValue={med?.startDate ?? today} />
+          <input className="input" type="date" name="startDate" {...fieldA11y(state, "startDate", statusId)} required defaultValue={med?.startDate ?? today} />
         </label>
         <label className="field">
           End date <span className="font-normal text-[var(--muted)]">(optional)</span>
-          <input className="input" type="date" name="endDate" defaultValue={med?.endDate ?? ""} />
+          <input className="input" type="date" name="endDate" {...fieldA11y(state, "endDate", statusId)} defaultValue={med?.endDate ?? ""} />
         </label>
         <label className="field">
           Pills in stock
-          <input className="input" type="number" name="stock" min={0} max={10000} defaultValue={med?.stock ?? ""} placeholder="optional" />
+          <input className="input" type="number" name="stock" {...fieldA11y(state, "stock", statusId)} min={0} max={10000} defaultValue={med?.stock ?? ""} placeholder="optional" />
         </label>
         <label className="field">
           Refill alert at
-          <input className="input" type="number" name="refillThreshold" min={0} max={1000} defaultValue={med?.refillThreshold ?? 5} />
+          <input className="input" type="number" name="refillThreshold" {...fieldA11y(state, "refillThreshold", statusId)} min={0} max={1000} defaultValue={med?.refillThreshold ?? 5} />
         </label>
       </div>
 
-      <FormStatus state={state} />
+      <FormStatus state={state} id={statusId} />
       <div className="flex gap-2">
         <button className="btn-primary" disabled={pending}>
           {pending ? "Saving…" : med ? "Save changes" : "Add medicine"}

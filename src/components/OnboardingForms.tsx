@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { createCircleAction, joinCircleAction } from "@/app/actions";
+import { useActionState, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import { createCircleAction, joinCircleAction } from "@/app/actions/onboarding";
+import { DEFAULT_TIMEZONE } from "@/lib/time";
 import { LANGUAGES } from "@/lib/validation";
-import { FormStatus } from "./FormStatus";
+import { fieldA11y, FormStatus } from "./FormStatus";
 
 const ROLE_OPTIONS = [
   { value: "family", label: "Family member" },
@@ -11,22 +12,46 @@ const ROLE_OPTIONS = [
   { value: "elder", label: "I am the elder" },
 ];
 
-export function OnboardingForms({ defaultTab = "create" }: { defaultTab?: "create" | "join" }) {
-  const [tab, setTab] = useState<"create" | "join">(defaultTab);
+const TABS = [
+  { id: "create", label: "Start a circle" },
+  { id: "join", label: "Join a circle" },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
+
+/** Create/join forms behind an ARIA tablist with arrow-key navigation. */
+export function OnboardingForms({ defaultTab = "create" }: { defaultTab?: Tab }) {
+  const [tab, setTab] = useState<Tab>(defaultTab);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const current = TABS.findIndex((t) => t.id === tab);
+    const next = { ArrowRight: current + 1, ArrowLeft: current - 1, Home: 0, End: TABS.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    const index = (next + TABS.length) % TABS.length;
+    setTab(TABS[index].id);
+    tabRefs.current[index]?.focus();
+  };
+
   return (
     <div className="card">
-      <div role="tablist" aria-label="Get started" className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-stone-100 p-1">
-        {(["create", "join"] as const).map((t) => (
+      <div role="tablist" aria-label="Get started" onKeyDown={onKeyDown} className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-stone-100 p-1">
+        {TABS.map((t, i) => (
           <button
-            key={t}
+            key={t.id}
+            ref={(el) => {
+              tabRefs.current[i] = el;
+            }}
+            type="button"
             role="tab"
-            id={`tab-${t}`}
-            aria-selected={tab === t}
-            aria-controls={`panel-${t}`}
-            onClick={() => setTab(t)}
-            className={`min-h-[44px] rounded-lg font-semibold ${tab === t ? "bg-white shadow" : "text-[var(--muted)]"}`}
+            id={`tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`panel-${t.id}`}
+            tabIndex={tab === t.id ? 0 : -1}
+            onClick={() => setTab(t.id)}
+            className={`min-h-[44px] rounded-lg font-semibold ${tab === t.id ? "bg-white shadow" : "text-[var(--muted)]"}`}
           >
-            {t === "create" ? "Start a circle" : "Join a circle"}
+            {t.label}
           </button>
         ))}
       </div>
@@ -37,25 +62,30 @@ export function OnboardingForms({ defaultTab = "create" }: { defaultTab?: "creat
   );
 }
 
+const subscribeNoop = () => () => {};
+const browserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
+  } catch {
+    return DEFAULT_TIMEZONE;
+  }
+};
+
 function CreateForm() {
   const [state, action, pending] = useActionState(createCircleAction, null);
-  const [timezone, setTimezone] = useState("Asia/Kolkata");
-  useEffect(() => {
-    try {
-      setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata");
-    } catch {}
-  }, []);
+  const timezone = useSyncExternalStore(subscribeNoop, browserTimezone, () => DEFAULT_TIMEZONE);
+  const statusId = useId();
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={action} className="flex flex-col gap-4" aria-label="Start a care circle">
       <input type="hidden" name="timezone" value={timezone} />
       <label className="field">
         Who are we caring for?
-        <input className="input" name="elderName" required maxLength={60} placeholder="e.g. Amma / Ramesh Rao" autoComplete="off" />
+        <input className="input" name="elderName" required maxLength={60} placeholder="e.g. Amma / Ramesh Rao" autoComplete="off" {...fieldA11y(state, "elderName", statusId)} />
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="field">
           Your name
-          <input className="input" name="yourName" required maxLength={60} autoComplete="name" />
+          <input className="input" name="yourName" required maxLength={60} autoComplete="name" {...fieldA11y(state, "yourName", statusId)} />
         </label>
         <label className="field">
           You are
@@ -69,13 +99,25 @@ function CreateForm() {
         </label>
       </div>
       <label className="field">
-        Your email <span className="font-normal text-[var(--muted)]">(for reminders — optional)</span>
-        <input className="input" type="email" name="yourEmail" autoComplete="email" />
+        <span>
+          Your email <span className="font-normal text-[var(--muted)]">(for reminders — optional)</span>
+        </span>
+        <input className="input" type="email" name="yourEmail" autoComplete="email" {...fieldA11y(state, "yourEmail", statusId)} />
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="field">
           Circle passcode
-          <input className="input" type="password" name="passcode" required minLength={6} maxLength={64} autoComplete="new-password" aria-describedby="passcode-help" />
+          <input
+            className="input"
+            type="password"
+            name="passcode"
+            required
+            minLength={6}
+            maxLength={64}
+            autoComplete="new-password"
+            aria-describedby="passcode-help"
+            {...fieldA11y(state, "passcode", statusId)}
+          />
         </label>
         <label className="field">
           Preferred language
@@ -89,9 +131,9 @@ function CreateForm() {
         </label>
       </div>
       <p id="passcode-help" className="-mt-2 text-xs text-[var(--muted)]">
-        Share this passcode only with people you trust. Everyone who knows it can join and help.
+        At least 6 characters. Share it only with people you trust — everyone who knows it can join and help.
       </p>
-      <FormStatus state={state} />
+      <FormStatus state={state} id={statusId} />
       <button className="btn-primary" disabled={pending}>
         {pending ? "Creating…" : "Create our care circle"}
       </button>
@@ -101,22 +143,32 @@ function CreateForm() {
 
 function JoinForm() {
   const [state, action, pending] = useActionState(joinCircleAction, null);
+  const statusId = useId();
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={action} className="flex flex-col gap-4" aria-label="Join a care circle">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="field">
           Circle code
-          <input className="input uppercase tracking-widest" name="code" required maxLength={12} placeholder="ABCD-2345" autoComplete="off" />
+          <input
+            className="input uppercase tracking-widest"
+            name="code"
+            required
+            maxLength={12}
+            placeholder="ABCD-2345"
+            autoComplete="off"
+            autoCapitalize="characters"
+            {...fieldA11y(state, "code", statusId)}
+          />
         </label>
         <label className="field">
           Passcode
-          <input className="input" type="password" name="passcode" required maxLength={64} autoComplete="current-password" />
+          <input className="input" type="password" name="passcode" required maxLength={64} autoComplete="current-password" {...fieldA11y(state, "passcode", statusId)} />
         </label>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="field">
           Your name
-          <input className="input" name="name" required maxLength={60} autoComplete="name" />
+          <input className="input" name="name" required maxLength={60} autoComplete="name" {...fieldA11y(state, "name", statusId)} />
         </label>
         <label className="field">
           You are
@@ -130,10 +182,12 @@ function JoinForm() {
         </label>
       </div>
       <label className="field">
-        Your email <span className="font-normal text-[var(--muted)]">(for reminders — optional)</span>
-        <input className="input" type="email" name="email" autoComplete="email" />
+        <span>
+          Your email <span className="font-normal text-[var(--muted)]">(for reminders — optional)</span>
+        </span>
+        <input className="input" type="email" name="email" autoComplete="email" {...fieldA11y(state, "email", statusId)} />
       </label>
-      <FormStatus state={state} />
+      <FormStatus state={state} id={statusId} />
       <button className="btn-primary" disabled={pending}>
         {pending ? "Joining…" : "Join the circle"}
       </button>

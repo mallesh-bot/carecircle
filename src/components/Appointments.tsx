@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useState, useTransition } from "react";
-import { deleteAppointmentAction, saveAppointmentAction } from "@/app/actions";
+import { useActionState, useCallback, useEffect, useId, useState, useTransition } from "react";
+import { deleteAppointmentAction, saveAppointmentAction } from "@/app/actions/appointments";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { formatDateTime, toLocalDateTimeInput } from "@/lib/time";
-import { FormStatus } from "./FormStatus";
+import { fieldA11y, FormStatus } from "./FormStatus";
 
 export interface AppointmentView {
   id: string;
@@ -100,6 +100,7 @@ function AppointmentRow({ appt, timezone, elderName }: { appt: AppointmentView; 
 
 function AppointmentForm({ appt, timezone, onDone }: { appt?: AppointmentView; timezone: string; onDone: () => void }) {
   const [state, action, pending] = useActionState(saveAppointmentAction, null);
+  const statusId = useId();
   useEffect(() => {
     if (state?.ok) onDone();
   }, [state, onDone]);
@@ -109,7 +110,7 @@ function AppointmentForm({ appt, timezone, onDone }: { appt?: AppointmentView; t
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="field">
           What is it?
-          <input className="input" name="title" required maxLength={80} defaultValue={appt?.title} placeholder="e.g. Diabetes check-up" />
+          <input className="input" name="title" {...fieldA11y(state, "title", statusId)} required maxLength={80} defaultValue={appt?.title} placeholder="e.g. Diabetes check-up" />
         </label>
         <label className="field">
           When
@@ -117,6 +118,7 @@ function AppointmentForm({ appt, timezone, onDone }: { appt?: AppointmentView; t
             className="input"
             type="datetime-local"
             name="startsAt"
+            {...fieldA11y(state, "startsAt", statusId)}
             required
             defaultValue={appt ? toLocalDateTimeInput(new Date(appt.startsAt), timezone) : undefined}
           />
@@ -134,7 +136,7 @@ function AppointmentForm({ appt, timezone, onDone }: { appt?: AppointmentView; t
         Notes
         <textarea className="input" name="notes" rows={2} maxLength={500} defaultValue={appt?.notes} placeholder="e.g. Fasting blood test — no breakfast" />
       </label>
-      <FormStatus state={state} />
+      <FormStatus state={state} id={statusId} />
       <div className="flex gap-2">
         <button className="btn-primary" disabled={pending}>
           {pending ? "Saving…" : "Save appointment"}

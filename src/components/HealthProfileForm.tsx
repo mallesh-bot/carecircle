@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { saveEmergencyAction } from "@/app/actions";
+import { saveEmergencyAction } from "@/app/actions/circle";
 import { LANGUAGES, type Language } from "@/lib/validation";
 import { FormStatus } from "./FormStatus";
 

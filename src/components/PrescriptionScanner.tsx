@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { addScannedMedicationsAction, scanPrescriptionAction, type ActionState } from "@/app/actions";
+import { addScannedMedicationsAction, scanPrescriptionAction } from "@/app/actions/ai";
+import type { ActionState } from "@/lib/action-utils";
 import type { ExtractedMedication } from "@/lib/gemini";
 import { FormStatus } from "./FormStatus";
 

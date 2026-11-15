@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { headers } from "next/headers";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -21,16 +23,13 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-// Applies the saved text-size preference before paint to avoid a flash.
-const textSizeScript = `try{if(localStorage.getItem("cc-text")==="large")document.documentElement.dataset.text="large"}catch(e){}`;
-
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // The per-request CSP nonce (see src/proxy.ts) authorises our one bootstrap script.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: textSizeScript }} />
-      </head>
       <body className={`${geistSans.variable} min-h-screen`}>
+        <Script src="/text-size.js" strategy="beforeInteractive" nonce={nonce} />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow"

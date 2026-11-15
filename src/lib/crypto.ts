@@ -45,6 +45,13 @@ export function randomToken(bytes = 32): string {
   return randomBytes(bytes).toString("base64url");
 }
 
+/** Constant-time string comparison (for secrets such as the cron bearer token). */
+export function safeEqual(a: string, b: string): boolean {
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb) && a.length === b.length;
+}
+
 /** Only token hashes are stored, so a database leak doesn't leak live sessions. */
 export function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");

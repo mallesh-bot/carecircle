@@ -12,7 +12,7 @@ const optionalEmail = z
   .trim()
   .max(254)
   .transform((v) => (v === "" ? null : v.toLowerCase()))
-  .pipe(z.string().email("Enter a valid email").nullable());
+  .pipe(z.email("Enter a valid email").nullable());
 
 export const passcodeSchema = z
   .string()
@@ -37,7 +37,7 @@ export const createCircleSchema = z.object({
   yourEmail: optionalEmail,
   yourRole: z.enum(ROLES),
   passcode: passcodeSchema,
-  timezone: z.string().refine(isValidTimezone, "Unknown timezone"),
+  timezone: z.string().max(64).refine(isValidTimezone, "Unknown timezone"),
   language,
 });
 
@@ -77,8 +77,10 @@ export const appointmentSchema = z.object({
 });
 export type AppointmentInput = z.infer<typeof appointmentSchema>;
 
+export const BLOOD_GROUPS = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
+
 export const emergencySchema = z.object({
-  bloodGroup: trimmed(8),
+  bloodGroup: z.enum(BLOOD_GROUPS, "Choose a blood group"),
   conditions: trimmed(300),
   allergies: trimmed(300),
   emergencyContact: trimmed(160),
@@ -92,9 +94,24 @@ export const memberUpdateSchema = z.object({
   notify: z.boolean(),
 });
 
-export const uuid = z.string().uuid();
+export const uuid = z.uuid();
 
-/** First human-readable error message from a failed parse. */
-export function firstError(error: z.ZodError): string {
-  return error.issues[0]?.message ?? "Invalid input";
-}
+export const doseActionSchema = z.object({
+  medicationId: uuid,
+  scheduledAt: z.iso.datetime().transform((v) => new Date(v)),
+  status: z.enum(["taken", "skipped", "undo"]),
+});
+
+/** Medicines proposed by the prescription scanner, re-validated when the family confirms them. */
+export const scannedMedicationsSchema = z
+  .array(
+    z.object({
+      name: required("Medicine name"),
+      dosage: trimmed(60).default(""),
+      instructions: trimmed(240).default(""),
+      times: z.array(timeOfDay).max(8).default([]),
+      durationDays: z.number().int().min(0).max(3650).nullable().default(null),
+    }),
+  )
+  .min(1)
+  .max(20);

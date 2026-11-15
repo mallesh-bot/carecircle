@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { careDigestAction, type DigestState } from "@/app/actions";
+import { careDigestAction, type DigestState } from "@/app/actions/ai";
 import { speak } from "@/lib/speech";
 import type { Language } from "@/lib/validation";
 

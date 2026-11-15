@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { logDoseAction } from "@/app/actions";
+import { logDoseAction } from "@/app/actions/doses";
 import { formatTime } from "@/lib/time";
 import type { DoseStatus } from "@/lib/types";
 
