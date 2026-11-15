@@ -1,0 +1,24 @@
+name: Reminder scheduler
+
+# Vercel's free plan runs cron jobs once a day, so this workflow calls the
+# idempotent reminder endpoint every 15 minutes. Duplicate calls are harmless
+# because each reminder is claimed with a unique dedupe key before sending.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Run due reminders
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://carecircle-brown-seven.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$CRON_SECRET" ]; then AUTH="Authorization: Bearer $CRON_SECRET"; else AUTH="X-Trigger: github-actions"; fi
+          curl --fail --silent --show-error --max-time 60 -H "$AUTH" "$APP_URL/api/cron/reminders"

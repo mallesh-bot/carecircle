@@ -65,3 +65,10 @@ describe("planReminders", () => {
     expect(planReminders(base(), now).map((x) => x.dedupeKey)).toEqual(planReminders(base(), new Date(now.getTime() + 60_000)).map((x) => x.dedupeKey));
   });
 });
+
+describe("in-app reminders", () => {
+  it("still plans reminders when nobody has email, so they show in the app", () => {
+    const r = planReminders(base({ members: [member({ email: null })] }), new Date("2026-11-15T04:00:00Z"));
+    expect(r.find((x) => x.kind === "missed_dose")?.recipients).toEqual([]);
+  });
+});

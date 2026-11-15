@@ -52,7 +52,7 @@ export function planReminders(ctx: ReminderContext, now: Date): PlannedReminder[
     const iso = slot.scheduledAt.toISOString();
 
     if (slot.status === "due" || (slot.status === "upcoming" && delta <= UPCOMING_DOSE_LEAD_MS)) {
-      if (delta > 0 && everyone.length) {
+      if (delta > 0) {
         out.push({
           dedupeKey: `upcoming:${slot.medicationId}:${iso}`,
           kind: "upcoming_dose",
@@ -66,7 +66,7 @@ export function planReminders(ctx: ReminderContext, now: Date): PlannedReminder[
       }
     }
 
-    if (slot.status === "missed" && -delta <= MISSED_AFTER_MS + MISSED_LOOKBACK_MS && supporters.length) {
+    if (slot.status === "missed" && -delta <= MISSED_AFTER_MS + MISSED_LOOKBACK_MS) {
       out.push({
         dedupeKey: `missed:${slot.medicationId}:${iso}`,
         kind: "missed_dose",
@@ -81,12 +81,12 @@ export function planReminders(ctx: ReminderContext, now: Date): PlannedReminder[
 
   for (const appt of ctx.appointments) {
     const delta = appt.startsAt.getTime() - now.getTime();
-    if (delta > 0 && delta <= APPOINTMENT_LEAD_MS && everyone.length) {
+    if (delta > 0 && delta <= APPOINTMENT_LEAD_MS) {
       out.push({
         dedupeKey: `appt:${appt.id}:${appt.startsAt.toISOString()}`,
         kind: "appointment",
         recipients: everyone,
-        subject: `Upcoming appointment: ${appt.title} — ${formatDateTime(appt.startsAt, tz)}`,
+        subject: `Upcoming appointment: ${appt.title} â€” ${formatDateTime(appt.startsAt, tz)}`,
         text:
           `${ctx.elderName} has "${appt.title}"${appt.doctor ? ` with ${appt.doctor}` : ""} on ${formatDateTime(appt.startsAt, tz)}.` +
           (appt.location ? `\nWhere: ${appt.location}` : "") +
@@ -96,7 +96,6 @@ export function planReminders(ctx: ReminderContext, now: Date): PlannedReminder[
   }
 
   for (const med of needsRefill(ctx.medications)) {
-    if (!supporters.length) continue;
     out.push({
       dedupeKey: `refill:${med.id}:${today}`,
       kind: "refill",
@@ -106,5 +105,6 @@ export function planReminders(ctx: ReminderContext, now: Date): PlannedReminder[
     });
   }
 
-  return out.filter((r) => r.recipients.length > 0);
+  // Reminders with no email recipients still appear in the in-app notification log.
+  return out;
 }

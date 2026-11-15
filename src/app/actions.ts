@@ -91,7 +91,9 @@ export async function joinCircleAction(_: ActionState, fd: FormData): Promise<Ac
 
 /** One-click demo: a private, pre-filled circle so visitors can try every feature. */
 export async function startDemoAction(): Promise<void> {
-  const { visitor } = await seedDemoCircle(await getDb(), "You (demo)");
+  const db = await getDb();
+  const { circle, visitor } = await seedDemoCircle(db, "You (demo)");
+  await runRemindersForCircle(db, circle.id); // populate the reminder log right away
   await signIn(visitor.id);
   redirect("/circle?demo=1");
 }
